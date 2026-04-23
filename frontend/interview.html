@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexaraAI Interview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a14;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ── */
+    #top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(10,10,20,0.9);
+      border-bottom: 1px solid rgba(108,99,255,0.15);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    #top-logo { display: flex; align-items: center; gap: 10px; }
+    #top-logo .dot {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: #6c63ff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+    }
+    #top-logo span { font-size: 14px; font-weight: 500; color: #ccc; }
+
+    #phase-bar { display: flex; gap: 6px; align-items: center; }
+    .phase-item {
+      font-size: 11px; padding: 4px 12px; border-radius: 20px;
+      background: #1a1a2e; color: #666;
+      transition: all 0.3s;
+    }
+    .phase-item.active { background: #6c63ff; color: #fff; }
+    .phase-item.done   { background: #1a3a1a; color: #34d399; }
+
+    #timer { font-size: 13px; color: #666; font-variant-numeric: tabular-nums; }
+
+    /* ── Main area ── */
+    #main-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Sarah's frame ── */
+    #sarah-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    #sarah-ring {
+      position: relative;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+    }
+
+    /* Pulsing glow ring when speaking */
+    #sarah-ring::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 3px solid #6c63ff;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #sarah-ring.speaking::before {
+      opacity: 1;
+      animation: pulse-ring 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(108,99,255,0.6); }
+      50%       { box-shadow: 0 0 0 22px rgba(108,99,255,0); }
+    }
+
+    #sarah-photo {
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ── Status label ── */
+    #status-label {
+      font-size: 13px;
+      color: #888;
+      letter-spacing: 0.5px;
+      min-height: 22px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #status-label .dot-live {
+      width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+      animation: blink 1s infinite;
+    }
+    #status-label .dot-listen {
+      width: 8px; height: 8px; border-radius: 50%; background: #34d399;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── Waveform bars ── */
+    #waveform {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 32px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #waveform.active { opacity: 1; }
+
+    .wave-bar {
+      width: 5px;
+      background: #6c63ff;
+      border-radius: 3px;
+      height: 6px;
+      transition: height 0.1s;
+    }
+    #waveform.active .wave-bar:nth-child(1) { animation: wave 1.0s ease-in-out 0.0s infinite; }
+    #waveform.active .wave-bar:nth-child(2) { animation: wave 1.0s ease-in-out 0.15s infinite; }
+    #waveform.active .wave-bar:nth-child(3) { animation: wave 1.0s ease-in-out 0.3s infinite; }
+    #waveform.active .wave-bar:nth-child(4) { animation: wave 1.0s ease-in-out 0.45s infinite; }
+    #waveform.active .wave-bar:nth-child(5) { animation: wave 1.0s ease-in-out 0.6s infinite; }
+
+    @keyframes wave {
+      0%, 100% { height: 6px; }
+      50%       { height: 28px; }
+    }
+
+    /* ── Self-view ── */
+    #self-view {
+      position: absolute;
+      bottom: 24px; right: 24px;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: #1a1a2e;
+      border: 2px solid rgba(108,99,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 32px;
+    }
+
+    /* ── Bottom controls ── */
+    #bottom-bar {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    #end-call-btn {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #ef4444;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    #end-call-btn:hover { background: #dc2626; transform: scale(1.05); }
+
+    /* ── Welcome overlay ── */
+    #welcome-overlay {
+      position: fixed; inset: 0;
+      background: rgba(10,10,20,0.97);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #welcome-card {
+      background: #12121f;
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 20px;
+      padding: 40px 44px;
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+    }
+    #welcome-card .avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      object-fit: cover; margin: 0 auto 16px;
+      border: 3px solid #6c63ff;
+      display: block;
+    }
+    #welcome-card h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    #welcome-card .role-tag {
+      font-size: 13px; color: #a78bfa;
+      background: rgba(108,99,255,0.1);
+      padding: 4px 14px; border-radius: 20px;
+      display: inline-block; margin-bottom: 20px;
+    }
+    #welcome-card p {
+      font-size: 14px; color: #888; line-height: 1.7; margin-bottom: 28px;
+    }
+    #start-btn {
+      width: 100%; padding: 14px;
+      background: #6c63ff; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    #start-btn:hover { background: #5b52e0; }
+    #start-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Complete overlay ── */
+    #complete-overlay {
+      position: fixed; inset: 0;
+      background: rgba(10,10,20,0.97);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #complete-card {
+      background: #12121f;
+      border: 1px solid rgba(52,211,153,0.3);
+      border-radius: 20px;
+      padding: 40px 44px;
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+    }
+    #complete-card .icon { font-size: 52px; margin-bottom: 16px; display: block; }
+    #complete-card h2 { font-size: 22px; font-weight: 600; margin-bottom: 14px; }
+    #complete-card p  { font-size: 14px; color: #888; line-height: 1.8; }
+    #complete-card a  { color: #a78bfa; }
+
+    /* ── Inline loading spinner ── */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div id="top-bar">
+    <div id="top-logo">
+      <div class="dot">N</div>
+      <span>NexaraAI Interview</span>
+    </div>
+    <div id="phase-bar">
+      <div class="phase-item" id="ph-intro">Intro</div>
+      <div class="phase-item" id="ph-technical">Technical</div>
+      <div class="phase-item" id="ph-behavioral">Behavioral</div>
+      <div class="phase-item" id="ph-candidate_questions">Q&amp;A</div>
+    </div>
+    <div id="timer">00:00</div>
+  </div>
+
+  <!-- Main area -->
+  <div id="main-area">
+    <div id="sarah-container">
+      <div id="sarah-ring">
+        <img id="sarah-photo" src="/static/sarah.jpg" alt="Sarah" />
+      </div>
+
+      <!-- Waveform (shown while Sarah speaks) -->
+      <div id="waveform">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <div id="status-label">—</div>
+    </div>
+
+    <!-- Self view -->
+    <div id="self-view">👤</div>
+  </div>
+
+  <!-- Bottom controls -->
+  <div id="bottom-bar">
+    <button id="end-call-btn" title="End call" onclick="endCall()">📵</button>
+  </div>
+
+  <!-- Welcome overlay -->
+  <div id="welcome-overlay">
+    <div id="welcome-card">
+      <img class="avatar" src="/static/sarah.jpg" alt="Sarah" />
+      <h1>Hi, {{NAME}}!</h1>
+      <div class="role-tag">{{ROLE}}</div>
+      <p>
+        You're about to start your AI interview with Sarah.<br>
+        Your microphone will activate automatically.<br>
+        Speak naturally — Sarah will guide you through the interview.
+      </p>
+      <button id="start-btn" onclick="startInterview()">
+        Start Interview →
+      </button>
+    </div>
+  </div>
+
+  <!-- Complete overlay -->
+  <div id="complete-overlay">
+    <div id="complete-card">
+      <span class="icon">✅</span>
+      <h2>Thank You, {{NAME}}!</h2>
+      <p>
+        Your application is being processed, and you will be notified
+        by the HR team via email once it has been evaluated.<br><br>
+        If you need any further information, please contact us at
+        <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ── Injected by server ──
+    const TOKEN         = '{{TOKEN}}';
+    const NAME          = '{{NAME}}';
+    const ROLE          = '{{ROLE}}';
+    const CONTACT_EMAIL = '{{CONTACT_EMAIL}}';
+
+    const GREETING = `Hi ${NAME}, welcome! I'm Sarah, your interviewer from NexaraAI. It's great to meet you. We'll be discussing the ${ROLE} position today. This will be a relaxed conversation — just speak naturally and take your time. Ready to begin? Let's get started!`;
+
+    // ── State ──
+    let appState      = 'idle';
+    let deepgramKey   = null;
+    let deepgramWs    = null;
+    let mediaStream   = null;
+    let mediaRecorder = null;
+    let silenceTimer  = null;
+    let timerInterval = null;
+    let elapsed       = 0;
+    let currentAudio  = null;   // module-level ref so GC can't collect it mid-playback
+
+    // ── DOM refs ──
+    const sarahRing      = document.getElementById('sarah-ring');
+    const waveform       = document.getElementById('waveform');
+    const statusLabel    = document.getElementById('status-label');
+    const welcomeOverlay = document.getElementById('welcome-overlay');
+    const completeOverlay= document.getElementById('complete-overlay');
+    const startBtn       = document.getElementById('start-btn');
+    const timerEl        = document.getElementById('timer');
+
+    // ── Timer ──
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        elapsed++;
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        timerEl.textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    // ── Phase indicator ──
+    function setPhaseUI(phase) {
+      const order = ['intro', 'technical', 'behavioral', 'candidate_questions'];
+      order.forEach(p => {
+        const el = document.getElementById(`ph-${p}`);
+        if (!el) return;
+        el.className = 'phase-item';
+        if (p === phase) el.classList.add('active');
+        if (order.indexOf(p) < order.indexOf(phase)) el.classList.add('done');
+      });
+    }
+
+    // ── Status label ──
+    function setStatus(type, text) {
+      const dot = type === 'speaking'
+        ? '<span class="dot-live"></span>'
+        : type === 'listening'
+        ? '<span class="dot-listen"></span>'
+        : '';
+      statusLabel.innerHTML = `${dot} ${text}`;
+    }
+
+    // ── Speaking state helpers ──
+    function enterSpeaking() {
+      appState = 'speaking';
+      sarahRing.classList.add('speaking');
+      waveform.classList.add('active');
+      setStatus('speaking', 'Sarah is speaking...');
+    }
+
+    function exitSpeaking() {
+      appState = 'idle';
+      sarahRing.classList.remove('speaking');
+      waveform.classList.remove('active');
+    }
+
+    // ── Play base64 mp3 audio ──
+    function playSarahAudio(base64mp3) {
+      return new Promise((resolve) => {
+        enterSpeaking();
+
+        const byteChars = atob(base64mp3);
+        const bytes     = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        const url  = URL.createObjectURL(blob);
+
+        // Store at module level — prevents GC from collecting the object
+        // mid-playback (which would silently kill the onended event)
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.src = '';
+        }
+        currentAudio = new Audio(url);
+
+        const done = () => {
+          exitSpeaking();
+          URL.revokeObjectURL(url);
+          currentAudio = null;
+          resolve();
+        };
+
+        currentAudio.onended = done;
+        currentAudio.onerror = done;
+
+        currentAudio.play().catch(done);
+      });
+    }
+
+    // ── Fetch helpers ──
+    async function apiPost(url, body) {
+      const res = await fetch(url, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`${url} → ${res.status}`);
+      return res.json();
+    }
+
+    // ── Start interview ──
+    async function startInterview() {
+      startBtn.disabled  = true;
+      startBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+
+      try {
+        // Fetch Deepgram key
+        const cfg = await fetch(`/interview/config?token=${TOKEN}`).then(r => r.json());
+        deepgramKey = cfg.deepgram_key;
+
+        welcomeOverlay.style.display = 'none';
+        startTimer();
+
+        // Greeting
+        setStatus('', '⏳ Preparing Sarah...');
+        const greetData = await apiPost('/interview/speak', { token: TOKEN, text: GREETING });
+        await playSarahAudio(greetData.audio_base64);
+
+        // First question from LangGraph
+        setStatus('', '⏳ Thinking...');
+        const startData = await apiPost('/interview/start', { token: TOKEN });
+        setPhaseUI(startData.phase);
+
+        if (startData.completed) { showComplete(); return; }
+
+        const q1Data = await apiPost('/interview/speak', { token: TOKEN, text: startData.response });
+        await playSarahAudio(q1Data.audio_base64);
+
+        startListening();
+
+      } catch (err) {
+        console.error(err);
+        setStatus('', '⚠️ Error — please refresh');
+        startBtn.disabled    = false;
+        startBtn.textContent = 'Retry';
+        welcomeOverlay.style.display = 'flex';
+      }
+    }
+
+    // ── Deepgram STT ──
+    let silenceRetries = 0;
+    const MAX_SILENCE_RETRIES = 3;
+
+    // When silence fires: never send empty string to backend (that re-asks the same question).
+    // Instead, restart listening up to MAX_SILENCE_RETRIES times, then prompt gently.
+    function handleSilence() {
+      silenceRetries++;
+      stopListening();
+
+      if (silenceRetries >= MAX_SILENCE_RETRIES) {
+        silenceRetries = 0;
+        setStatus('listening', "I didn't catch that. Please speak clearly and try again...");
+      } else {
+        setStatus('listening', "Still listening — please speak when ready...");
+      }
+
+      // Brief pause before re-opening the mic
+      setTimeout(() => {
+        if (appState !== 'processing' && appState !== 'speaking') {
+          startListening();
+        }
+      }, 1500);
+    }
+
+    function startListening() {
+      if (appState === 'processing' || appState === 'speaking') return;
+
+      appState = 'listening';
+      setStatus('listening', 'Listening...');
+
+      // Silence fallback — restart, never send empty to backend
+      silenceTimer = setTimeout(handleSilence, 8000);
+
+      const ws = new WebSocket(
+        `wss://api.deepgram.com/v1/listen?model=nova-2&language=en-US&smart_format=true&endpointing=800&encoding=linear16&sample_rate=16000`,
+        ['token', deepgramKey]
+      );
+      deepgramWs = ws;
+
+      ws.onopen = async () => {
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true }
+          });
+
+          const audioContext = new AudioContext({ sampleRate: 16000 });
+          const source       = audioContext.createMediaStreamSource(mediaStream);
+          const processor    = audioContext.createScriptProcessor(4096, 1, 1);
+
+          // Connect through a silent gain (gain=0) so onaudioprocess fires
+          // without playing mic audio back through the speakers (no echo)
+          const silentGain = audioContext.createGain();
+          silentGain.gain.value = 0;
+          source.connect(processor);
+          processor.connect(silentGain);
+          silentGain.connect(audioContext.destination);
+
+          processor.onaudioprocess = (e) => {
+            if (ws.readyState !== WebSocket.OPEN) return;
+            const float32 = e.inputBuffer.getChannelData(0);
+            const int16   = new Int16Array(float32.length);
+            for (let i = 0; i < float32.length; i++) {
+              int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768));
+            }
+            ws.send(int16.buffer);
+          };
+
+          window._audioContext   = audioContext;
+          window._audioProcessor = processor;
+
+        } catch (err) {
+          console.error('Mic error:', err);
+          stopListening();
+          setStatus('', '⚠️ Mic not available');
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data       = JSON.parse(event.data);
+          const transcript = data?.channel?.alternatives?.[0]?.transcript;
+
+          if (data.type === 'SpeechStarted') {
+            // User started speaking — give extra time, don't restart on silence yet
+            clearTimeout(silenceTimer);
+            silenceTimer = setTimeout(handleSilence, 12000);
+          }
+
+          if (transcript && data.is_final && transcript.trim().length > 0) {
+            console.log('[Deepgram] Final transcript:', transcript);
+            clearTimeout(silenceTimer);
+            stopListening();
+            silenceRetries = 0;
+            sendAnswer(transcript.trim());
+          }
+        } catch { /* ignore parse errors */ }
+      };
+
+      ws.onerror = (e) => {
+        console.error('Deepgram WS error:', e);
+        stopListening();
+        setStatus('', '⚠️ Connection error — retrying...');
+        setTimeout(() => {
+          if (appState !== 'processing' && appState !== 'speaking') startListening();
+        }, 2000);
+      };
+
+      ws.onclose = (e) => {
+        if (e.code !== 1000 && appState === 'listening') {
+          console.warn('[Deepgram] WS closed unexpectedly, code:', e.code);
+        }
+      };
+    }
+
+    function stopListening() {
+      clearTimeout(silenceTimer);
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+      if (deepgramWs)  deepgramWs.close();
+      mediaRecorder = null;
+      mediaStream   = null;
+      deepgramWs    = null;
+      if (window._audioContext) {
+        window._audioProcessor.disconnect();
+        window._audioContext.close();
+        window._audioContext   = null;
+        window._audioProcessor = null;
+      }
+    }
+
+    // ── Send answer → get audio response ──
+    async function sendAnswer(text) {
+      if (appState === 'processing') return;   // guard against double-fire
+      appState = 'processing';
+      setStatus('', '⏳ Thinking...');
+      console.log('[Answer] Sending:', text);
+
+      try {
+        const data = await apiPost('/interview/answer', { token: TOKEN, message: text });
+        console.log('[Answer] Phase:', data.phase, '| Completed:', data.completed);
+        setPhaseUI(data.phase);
+
+        await playSarahAudio(data.audio_base64);
+
+        if (data.completed) {
+          showComplete();
+        } else {
+          startListening();
+        }
+      } catch (err) {
+        console.error('[Answer] Error:', err);
+        setStatus('listening', 'Error — retrying...');
+        setTimeout(() => startListening(), 2000);
+      }
+    }
+
+    // ── End call ──
+    function endCall() {
+      if (!confirm('End the interview?')) return;
+      // Stop any audio playing immediately
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.src = '';
+        currentAudio = null;
+      }
+      stopListening();
+      exitSpeaking();
+      clearInterval(timerInterval);
+      showComplete();
+    }
+
+    // ── Completion screen ──
+    function showComplete() {
+      stopListening();
+      clearInterval(timerInterval);
+      exitSpeaking();
+      completeOverlay.style.display = 'flex';
+    }
+  </script>
+</body>
+</html>
