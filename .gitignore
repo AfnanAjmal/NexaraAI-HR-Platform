@@ -37,10 +37,6 @@ chroma-db/
 # Data / uploads
 data/
 
-# Generated graphs (regenerate with graph.py)
-chat_graph.png
-interview_graph.png
-
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
